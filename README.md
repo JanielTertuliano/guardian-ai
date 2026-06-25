@@ -11,7 +11,8 @@ O projeto combina:
 - embeddings locais com `sentence-transformers`;
 - agente LangChain com Function Calling;
 - Gemini como LLM;
-- API Web com FastAPI para expor a auditoria a futuras interfaces.
+- API Web com FastAPI para expor a auditoria a futuras interfaces;
+- testes automatizados com `requests` e geracao de relatorio Markdown.
 
 ## Arquitetura do Projeto
 
@@ -52,25 +53,32 @@ Pipeline principal:
    - `GET /`: healthcheck da API;
    - `POST /api/audit`: recebe uma pergunta de auditoria e retorna a analise final do agente.
 
+5. Testes automatizados e registro de auditoria
+
+   O script `tests/test_api.py` valida a API em execucao, mede o tempo de resposta do agente e gera `REGISTRO_DE_AUDITORIA.md` com a resposta analitica completa para o cliente `CLI-38726`.
+
 ## Estrutura do Projeto
 
 ```text
 .
-├── data/
-│   ├── compliance_logs.csv
-│   ├── customers.csv
-│   ├── politica_compliance_guardian.txt
-│   └── transactions.csv
-├── src/
-│   ├── agent.py
-│   ├── baseline.py
-│   ├── generator.py
-│   ├── init.py
-│   └── main.py
-├── chromadb_cache/
-├── .env
-├── requirements.txt
-└── README.md
+|-- data/
+|   |-- compliance_logs.csv
+|   |-- customers.csv
+|   |-- politica_compliance_guardian.txt
+|   `-- transactions.csv
+|-- src/
+|   |-- agent.py
+|   |-- baseline.py
+|   |-- generator.py
+|   |-- init.py
+|   `-- main.py
+|-- tests/
+|   `-- test_api.py
+|-- chromadb_cache/
+|-- .env
+|-- requirements.txt
+|-- REGISTRO_DE_AUDITORIA.md
+`-- README.md
 ```
 
 ## Pre-requisitos e Instalacao
@@ -179,9 +187,39 @@ Formato da resposta:
 }
 ```
 
+### 5. Executar testes automatizados da API
+
+Com o servidor FastAPI rodando em outro terminal:
+
+```bash
+python tests/test_api.py
+```
+
+O teste executa:
+
+- `GET /` para validar se a API esta online;
+- `POST /api/audit` com uma pergunta real sobre o cliente `CLI-38726`;
+- medicao do tempo total da consulta Agente + RAG + Function Calling + Gemini;
+- criacao do arquivo `REGISTRO_DE_AUDITORIA.md` na raiz do projeto.
+
+Se o servidor estiver desligado, o script exibe uma mensagem orientando a iniciar:
+
+```bash
+uvicorn src.main:app --reload
+```
+
+O relatorio gerado contem:
+
+- status da API;
+- cliente auditado;
+- tempo total de processamento;
+- pergunta enviada;
+- resposta analitica completa retornada pelo Gemini.
+
 ## Observacoes Operacionais
 
 - A primeira execucao pode demorar porque o modelo de embeddings pode ser carregado ou baixado localmente.
 - Se a API Gemini retornar `429 RESOURCE_EXHAUSTED`, a chave atingiu limite de quota.
 - Se retornar `503 UNAVAILABLE`, o modelo esta temporariamente sob alta demanda.
 - Se `gemini-1.5-flash` nao estiver disponivel para a chave atual, defina `GUARDIAN_AGENT_LLM_MODEL` no `.env` com um modelo suportado, como `gemini-2.5-flash`, `gemini-2.0-flash` ou outro listado para sua conta.
+- O teste `tests/test_api.py` depende da API estar ligada e de quota/modelo Gemini disponivel para concluir a auditoria real.

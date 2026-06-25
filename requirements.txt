@@ -13,4 +13,5 @@ python-dotenv
 pydantic
 fastapi
 uvicorn
+requests
 huggingface_hub
