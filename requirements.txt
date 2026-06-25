@@ -11,4 +11,6 @@ chromadb
 sentence-transformers
 python-dotenv
 pydantic
+fastapi
+uvicorn
 huggingface_hub

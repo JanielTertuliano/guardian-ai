@@ -1,142 +1,113 @@
-# Guardian
+# Guardian AI: Sistema de Auditoria de Compliance Baseado em Agentes e RAG
 
-Projeto local de IA Generativa e RAG para apoio a análises de Compliance e PLD/CFT em operações de câmbio.
+## Descricao Breve
 
-Até agora, o Guardian possui uma base inicial com geração de dados sintéticos, uma política interna de compliance e um pipeline RAG Baseline usando LangChain, Sentence Transformers, ChromaDB e Gemini via Google GenAI.
+O Guardian AI automatiza a analise de Compliance e PLD/CFT em operacoes de cambio. O sistema cruza politicas internas recuperadas por RAG com dados estruturados de clientes e transacoes, permitindo que um agente de IA identifique indicios de risco, inconformidades e justificativas com base documental.
 
-## Estrutura Atual
+O projeto combina:
+
+- dados sinteticos de clientes, transacoes e logs de compliance;
+- politica interna de compliance indexada em ChromaDB;
+- embeddings locais com `sentence-transformers`;
+- agente LangChain com Function Calling;
+- Gemini como LLM;
+- API Web com FastAPI para expor a auditoria a futuras interfaces.
+
+## Arquitetura do Projeto
+
+Pipeline principal:
+
+1. Geracao de dados
+
+   O script `src/generator.py` cria arquivos CSV sinteticos em `data/`:
+
+   - `customers.csv`;
+   - `transactions.csv`;
+   - `compliance_logs.csv`.
+
+2. Criacao de vetores e ChromaDB
+
+   O script `src/baseline.py` le `data/politica_compliance_guardian.txt`, divide o texto em chunks, gera embeddings locais com `sentence-transformers/all-MiniLM-L6-v2` e persiste o indice vetorial em `chromadb_cache/`.
+
+3. Orquestracao de agente com LangChain e Gemini
+
+   O script `src/agent.py` implementa um agente com `create_tool_calling_agent` e `AgentExecutor`. A LLM usa Function Calling para decidir quando consultar:
+
+   - `consultar_dados_cadastrais(customer_id)`;
+   - `consultar_historico_transacoes(customer_id)`;
+   - `consultar_politica_compliance(query)`.
+
+   O modelo padrao do agente e `gemini-1.5-flash`, com suporte a override via `.env`:
+
+   ```text
+   GUARDIAN_AGENT_LLM_MODEL=gemini-2.5-flash
+   ```
+
+   Para a arquitetura alvo, recomenda-se usar `gemini-2.5-flash` quando disponivel para a chave configurada.
+
+4. API com FastAPI
+
+   O arquivo `src/main.py` expoe o agente por HTTP:
+
+   - `GET /`: healthcheck da API;
+   - `POST /api/audit`: recebe uma pergunta de auditoria e retorna a analise final do agente.
+
+## Estrutura do Projeto
 
 ```text
 .
 ├── data/
-│   └── politica_compliance_guardian.txt
+│   ├── compliance_logs.csv
+│   ├── customers.csv
+│   ├── politica_compliance_guardian.txt
+│   └── transactions.csv
 ├── src/
+│   ├── agent.py
 │   ├── baseline.py
 │   ├── generator.py
-│   └── init.py
+│   ├── init.py
+│   └── main.py
+├── chromadb_cache/
+├── .env
 ├── requirements.txt
 └── README.md
 ```
 
-Após executar o gerador, a pasta `data/` também passa a conter:
+## Pre-requisitos e Instalacao
 
-```text
-data/customers.csv
-data/transactions.csv
-data/compliance_logs.csv
-```
+Requisitos principais:
 
-Após executar o Baseline RAG, o projeto também cria:
+- Python 3.11+;
+- chave da Gemini API;
+- ambiente virtual Python recomendado.
 
-```text
-chromadb_cache/
-```
+Instale as dependencias:
 
-## O Que Foi Construído
-
-### 1. Geração de Dados Sintéticos
-
-Arquivo: `src/generator.py`
-
-Responsável por gerar uma base sintética com:
-
-- clientes PF/PJ;
-- transações internacionais;
-- países de destino, incluindo jurisdições de maior risco;
-- marcação de clientes PEP;
-- logs simulados de análise de compliance.
-
-Os arquivos gerados são salvos em `data/`:
-
-- `customers.csv`
-- `transactions.csv`
-- `compliance_logs.csv`
-
-### 2. Política de Compliance
-
-Arquivo: `data/politica_compliance_guardian.txt`
-
-Contém o manual inicial de regras de Compliance e PLD/CFT da Guardian Platform, incluindo:
-
-- alçadas por valor de remessa;
-- jurisdições de risco;
-- regras para clientes PEP.
-
-### 3. Baseline RAG Local
-
-Arquivo: `src/baseline.py`
-
-Implementa um pipeline RAG básico e local:
-
-- carrega o texto da política de compliance;
-- divide o documento em chunks de 500 caracteres com overlap de 50;
-- cria embeddings locais com `sentence-transformers/all-MiniLM-L6-v2`;
-- persiste o índice vetorial com ChromaDB em `chromadb_cache/`;
-- executa busca semântica;
-- envia o contexto recuperado para o Gemini usando `ChatGoogleGenerativeAI`;
-- responde à pergunta de teste com base estrita na política interna.
-
-## Configuração de Ambiente
-
-Recomendado usar um ambiente virtual Python.
-
-### Windows PowerShell
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+```bash
 pip install -r requirements.txt
 ```
 
-Crie também um arquivo `.env` na raiz do projeto com sua chave da Gemini API:
+Crie um arquivo `.env` na raiz do projeto:
 
 ```text
 GOOGLE_API_KEY=sua_chave_aqui
 ```
 
-Opcionalmente, você pode definir o modelo Gemini pelo `.env`:
+Opcionalmente, configure o modelo do agente:
 
 ```text
-GUARDIAN_LLM_MODEL=gemini-3.5-flash
+GUARDIAN_AGENT_LLM_MODEL=gemini-2.5-flash
 ```
 
-Se o PowerShell bloquear a ativação do ambiente virtual, execute:
+## Como Executar
 
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-Depois tente novamente:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-### macOS/Linux
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-## Como Executar o Projeto
-
-### Etapa 1: Instalar Dependências
-
-Com o ambiente virtual ativo:
-
-```bash
-pip install -r requirements.txt
-```
-
-### Etapa 2: Gerar Dados Sintéticos
+### 1. Gerar dados sinteticos
 
 ```bash
 python src/generator.py
 ```
 
-Esse comando cria:
+Esse comando gera:
 
 ```text
 data/customers.csv
@@ -144,7 +115,7 @@ data/transactions.csv
 data/compliance_logs.csv
 ```
 
-### Etapa 3: Executar o Baseline RAG
+### 2. Criar o indice vetorial do Baseline RAG
 
 ```bash
 python src/baseline.py
@@ -152,69 +123,65 @@ python src/baseline.py
 
 Esse comando:
 
-- carrega a política de compliance;
-- cria os chunks;
+- carrega a politica interna;
+- divide o documento em chunks;
 - gera embeddings locais;
-- persiste o banco vetorial em `chromadb_cache/`;
-- recupera os trechos mais relevantes da política;
-- envia a pergunta e o contexto para o Gemini;
-- executa uma pergunta de demonstração:
+- cria ou reutiliza o indice ChromaDB em `chromadb_cache/`;
+- executa uma pergunta de demonstracao contra a politica.
 
-```text
-Qual a regra para remessas feitas por clientes PEP acima de USD 100.000?
-```
-
-## Dependências
-
-As dependências atuais estão em `requirements.txt`:
-
-```text
-pandas
-numpy
-faker
-langchain
-langchain-classic
-langchain-text-splitters
-langchain-google-genai
-langchain-chroma
-langchain-huggingface
-chromadb
-sentence-transformers
-python-dotenv
-```
-
-## Agente com Function Calling
-
-Arquivo: `src/agent.py`
-
-Implementa um agente LangChain com `create_tool_calling_agent`, `AgentExecutor`
-e Gemini `gemini-1.5-flash`. O agente cruza dados estruturados dos CSVs com a
-politica interna recuperada via ChromaDB.
-
-Opcionalmente, defina `GUARDIAN_AGENT_LLM_MODEL` no `.env` para usar outro
-modelo Gemini disponivel sem alterar o codigo. Se `gemini-1.5-flash` nao
-estiver disponivel na chave/API atual, o teste integrado tenta fallback com
-`gemini-3.5-flash`.
-
-Ferramentas disponiveis para a LLM:
-
-- `consultar_dados_cadastrais(customer_id)`: consulta `data/customers.csv`;
-- `consultar_historico_transacoes(customer_id)`: consulta `data/transactions.csv`;
-- `consultar_politica_compliance(query)`: busca semanticamente regras no
-  indice `chromadb_cache/`.
-
-Depois de gerar os CSVs e criar o indice vetorial com o Baseline RAG:
+### 3. Executar o agente em modo script
 
 ```bash
 python src/agent.py
 ```
 
-O script executa um caso de auditoria integrado para o cliente `CLI-38726`,
-que existe na base sintetica e possui transacoes relevantes para analise de
-compliance.
+O script executa uma pergunta de auditoria para o cliente `CLI-38726`, cruzando:
 
-## Observações
+- cadastro do cliente;
+- historico de transacoes;
+- regras da politica interna via ChromaDB.
 
-- A primeira execução de `src/baseline.py` pode demorar, pois o modelo `sentence-transformers/all-MiniLM-L6-v2` pode ser baixado localmente.
-- O Baseline usa uma LLM real via Gemini. Para funcionar, `GOOGLE_API_KEY` precisa estar configurada no arquivo `.env`.
-- O diretório `chromadb_cache/` é gerado automaticamente e contém o índice vetorial persistido.
+### 4. Subir a API FastAPI
+
+```bash
+uvicorn src.main:app --reload
+```
+
+Healthcheck:
+
+```bash
+curl http://127.0.0.1:8000/
+```
+
+Resposta esperada:
+
+```json
+{
+  "status": "online",
+  "projeto": "Guardian AI"
+}
+```
+
+Auditoria via API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/audit \
+  -H "Content-Type: application/json" \
+  -d "{\"query\":\"Analise o historico do cliente com ID CLI-38726. Ele apresenta alguma inconformidade de acordo com a politica interna?\"}"
+```
+
+Formato da resposta:
+
+```json
+{
+  "pergunta": "Analise o historico do cliente com ID CLI-38726. Ele apresenta alguma inconformidade de acordo com a politica interna?",
+  "analise": "Resposta final gerada pelo agente."
+}
+```
+
+## Observacoes Operacionais
+
+- A primeira execucao pode demorar porque o modelo de embeddings pode ser carregado ou baixado localmente.
+- Se a API Gemini retornar `429 RESOURCE_EXHAUSTED`, a chave atingiu limite de quota.
+- Se retornar `503 UNAVAILABLE`, o modelo esta temporariamente sob alta demanda.
+- Se `gemini-1.5-flash` nao estiver disponivel para a chave atual, defina `GUARDIAN_AGENT_LLM_MODEL` no `.env` com um modelo suportado, como `gemini-2.5-flash`, `gemini-2.0-flash` ou outro listado para sua conta.
