@@ -76,10 +76,30 @@ Pipeline principal:
 |   `-- test_api.py
 |-- chromadb_cache/
 |-- .env
+|-- Dockerfile
+|-- docker-compose.yml
 |-- requirements.txt
 |-- REGISTRO_DE_AUDITORIA.md
 `-- README.md
 ```
+
+## O Que Cada Arquivo Faz
+
+- `src/generator.py`: gera a base sintetica usada nos testes do Guardian. Ele cria clientes PF/PJ, transacoes internacionais, paises de destino, clientes PEP e logs simulados de revisao de compliance.
+- `src/baseline.py`: monta o primeiro pipeline RAG do projeto. Ele le a politica interna, divide o texto em chunks, gera embeddings locais, cria ou carrega o indice ChromaDB e faz uma pergunta de demonstracao ao Gemini.
+- `src/agent.py`: implementa o agente inteligente de compliance. Ele usa LangChain, Function Calling e Gemini para decidir quando consultar dados cadastrais, historico de transacoes e regras da politica interna no ChromaDB.
+- `src/main.py`: expoe o agente como uma API Web FastAPI. Ele fornece o healthcheck `GET /` e a rota `POST /api/audit`, que recebe uma pergunta e retorna a analise final do agente em JSON.
+- `tests/test_api.py`: executa a validacao automatizada da API em funcionamento. Ele testa o healthcheck, chama a auditoria real, mede o tempo de resposta e gera `REGISTRO_DE_AUDITORIA.md`.
+- `data/politica_compliance_guardian.txt`: contem as regras internas usadas pelo RAG, incluindo limites por valor, jurisdicoes de risco e regras para clientes PEP.
+- `data/customers.csv`: contem os clientes sinteticos gerados, com perfil cadastral, faturamento, score interno e flag PEP.
+- `data/transactions.csv`: contem as transacoes sinteticas usadas pelo agente para identificar possiveis comportamentos suspeitos.
+- `data/compliance_logs.csv`: contem logs simulados de revisoes anteriores de compliance.
+- `chromadb_cache/`: armazena o indice vetorial persistido pelo ChromaDB. Essa pasta permite reutilizar os embeddings sem recriar tudo a cada execucao.
+- `requirements.txt`: lista as dependencias Python necessarias para executar geracao de dados, RAG, agente, API e testes.
+- `Dockerfile`: define a imagem Docker da aplicacao, instala dependencias de sistema e Python, copia o codigo e inicia a API com Uvicorn.
+- `docker-compose.yml`: orquestra o servico `guardian-api`, injeta variaveis do `.env`, publica a porta 8000 e persiste `data/` e `chromadb_cache/`.
+- `.env`: guarda configuracoes sensiveis e locais, principalmente `GOOGLE_API_KEY` e opcionalmente `GUARDIAN_AGENT_LLM_MODEL`.
+- `REGISTRO_DE_AUDITORIA.md`: relatorio gerado automaticamente pelos testes com status da API, tempo de processamento e resposta analitica do Gemini.
 
 ## Pre-requisitos e Instalacao
 
@@ -216,6 +236,64 @@ O relatorio gerado contem:
 - pergunta enviada;
 - resposta analitica completa retornada pelo Gemini.
 
+### 6. Executar com Docker
+
+O projeto inclui `Dockerfile` e `docker-compose.yml` para empacotar a API FastAPI e suas dependencias.
+
+Antes de subir o container, confirme que o arquivo `.env` existe na raiz do projeto:
+
+```text
+GOOGLE_API_KEY=sua_chave_aqui
+GUARDIAN_AGENT_LLM_MODEL=gemini-2.5-flash
+```
+
+Suba a aplicacao:
+
+```bash
+docker compose up --build
+```
+
+A API ficara disponivel em:
+
+```text
+http://127.0.0.1:8000
+```
+
+Valide o healthcheck:
+
+```bash
+curl http://127.0.0.1:8000/
+```
+
+Execute uma auditoria:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/audit \
+  -H "Content-Type: application/json" \
+  -d "{\"query\":\"Analise o historico do cliente com ID CLI-38726 de acordo com as regras de compliance.\"}"
+```
+
+Ver logs do servico:
+
+```bash
+docker compose logs -f guardian-api
+```
+
+Parar a aplicacao:
+
+```bash
+docker compose down
+```
+
+O `docker-compose.yml` monta os diretorios locais abaixo dentro do container:
+
+```text
+./data:/app/data
+./chromadb_cache:/app/chromadb_cache
+```
+
+Assim, os CSVs sinteticos e o indice ChromaDB persistem entre recriacoes do container.
+
 ## Observacoes Operacionais
 
 - A primeira execucao pode demorar porque o modelo de embeddings pode ser carregado ou baixado localmente.
@@ -223,3 +301,4 @@ O relatorio gerado contem:
 - Se retornar `503 UNAVAILABLE`, o modelo esta temporariamente sob alta demanda.
 - Se `gemini-1.5-flash` nao estiver disponivel para a chave atual, defina `GUARDIAN_AGENT_LLM_MODEL` no `.env` com um modelo suportado, como `gemini-2.5-flash`, `gemini-2.0-flash` ou outro listado para sua conta.
 - O teste `tests/test_api.py` depende da API estar ligada e de quota/modelo Gemini disponivel para concluir a auditoria real.
+- Na primeira execucao Docker, o build pode demorar porque instala dependencias pesadas como ChromaDB, sentence-transformers e bibliotecas numericas.
