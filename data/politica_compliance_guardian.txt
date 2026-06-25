@@ -1,0 +1,15 @@
+MANUAL INTERNO DE COMPLIANCE E PLD/CFT  GUARDIAN PLATFORM
+Versão 1.0 - Alinhada às Diretrizes do Banco Central do Brasil
+
+1. DIRETRIZES DE VALORES E ALÇADAS OPERACIONAIS
+1.1. Operações de remessas internacionais de até USD 50.000,00 possuem classificação de risco BAIXA, exigindo apenas validação cadastral básica.
+1.2. Operações entre USD 50.000,01 e USD 500.000,00 possuem risco MÉDIO, exigindo a apresentação de contrato de câmbio ou invoice correspondente à natureza da operação.
+1.3. Operações acima de USD 500.000,00 são classificadas como risco ALTO. Exigem auditoria documental estrita e aprovação manual da gerência de compliance.
+
+2. JURISDIÇÕES DE RISCO INTEGRADO (PARAÍSOS FISCAIS)
+2.1. São consideradas jurisdições de risco crítico ou paraísos fiscais as transações com destino ou origem em: Ilhas Cayman (KY), Panamá (PA), Bahamas (BS) e Ilhas Virgens Britânicas (VG).
+2.2. Qualquer remessa enviada para estas jurisdições com natureza "Serviços de Consultoria" sem entregáveis físicos/digitais comprovados deve ser imediatamente RETIDA para análise manual de indício de evasão de divisas.
+
+3. PESSOAS POLITICAMENTE EXPOSTAS (PEP)
+3.1. Clientes com a flag "status_PEP = 1" devem ter monitoramento contínuo. 
+3.2. Toda e qualquer remessa realizada por um cliente PEP acima de USD 100.000,00 deve obrigatoriamente gerar um alerta no sistema e passar por dupla checagem de compliance, independentemente do histórico de aprovações anteriores.
