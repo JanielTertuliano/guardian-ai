@@ -173,6 +173,7 @@ pandas
 numpy
 faker
 langchain
+langchain-classic
 langchain-text-splitters
 langchain-google-genai
 langchain-chroma
@@ -181,6 +182,36 @@ chromadb
 sentence-transformers
 python-dotenv
 ```
+
+## Agente com Function Calling
+
+Arquivo: `src/agent.py`
+
+Implementa um agente LangChain com `create_tool_calling_agent`, `AgentExecutor`
+e Gemini `gemini-1.5-flash`. O agente cruza dados estruturados dos CSVs com a
+politica interna recuperada via ChromaDB.
+
+Opcionalmente, defina `GUARDIAN_AGENT_LLM_MODEL` no `.env` para usar outro
+modelo Gemini disponivel sem alterar o codigo. Se `gemini-1.5-flash` nao
+estiver disponivel na chave/API atual, o teste integrado tenta fallback com
+`gemini-3.5-flash`.
+
+Ferramentas disponiveis para a LLM:
+
+- `consultar_dados_cadastrais(customer_id)`: consulta `data/customers.csv`;
+- `consultar_historico_transacoes(customer_id)`: consulta `data/transactions.csv`;
+- `consultar_politica_compliance(query)`: busca semanticamente regras no
+  indice `chromadb_cache/`.
+
+Depois de gerar os CSVs e criar o indice vetorial com o Baseline RAG:
+
+```bash
+python src/agent.py
+```
+
+O script executa um caso de auditoria integrado para o cliente `CLI-38726`,
+que existe na base sintetica e possui transacoes relevantes para analise de
+compliance.
 
 ## Observações
 
