@@ -55,6 +55,17 @@ class EvaluationContractTest(unittest.TestCase):
                 f"Prompt {filename} parece incompleto.",
             )
 
+    def test_runtime_uses_versioned_prompts(self):
+        agent_source = (BASE_DIR / "src" / "agent.py").read_text(encoding="utf-8")
+        baseline_source = (BASE_DIR / "src" / "baseline.py").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("agent_system_v1.md", agent_source)
+        self.assertIn("carregar_prompt_versionado", agent_source)
+        self.assertIn("rag_baseline_system_v1.md", baseline_source)
+        self.assertIn("carregar_prompt_versionado", baseline_source)
+
     def test_ethics_and_technical_report_exist(self):
         docs_dir = BASE_DIR / "docs"
         expected_files = [

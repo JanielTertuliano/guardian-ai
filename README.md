@@ -119,7 +119,7 @@ Pipeline principal:
 - `docs/RELATORIO_TECNICO.md`: relatorio tecnico do projeto com metodologia, arquitetura, resultados esperados e limitacoes.
 - `docs/AUDITORIA_ETICA.md`: analise de riscos eticos, vieses e mitigacoes.
 - `docs/MATRIZ_CONFORMIDADE_AV2.md`: matriz de rastreabilidade entre requisitos da AV2 e evidencias do projeto.
-- `prompts/`: registra prompts versionados do agente, baseline RAG e orientacao de ferramentas.
+- `prompts/`: registra prompts versionados do agente, baseline RAG e orientacao de ferramentas. Os prompts `agent_system_v1.md` e `rag_baseline_system_v1.md` sao carregados em runtime por `src/agent.py` e `src/baseline.py`.
 - `data/politica_compliance_guardian.txt`: contem as regras internas usadas pelo RAG, incluindo limites por valor, jurisdicoes de risco e regras para clientes PEP.
 - `data/customers.csv`: contem os clientes sinteticos gerados, com perfil cadastral, faturamento, score interno e flag PEP.
 - `data/transactions.csv`: contem as transacoes sinteticas usadas pelo agente para identificar possiveis comportamentos suspeitos.
@@ -410,3 +410,16 @@ Isso permite que o container `guardian-ui` chame o container `guardian-api` pela
 - O teste `tests/test_api.py` depende da API estar ligada e de quota/modelo Gemini disponivel para concluir a auditoria real.
 - Na primeira execucao Docker, o build pode demorar porque instala dependencias pesadas como ChromaDB, sentence-transformers e bibliotecas numericas.
 - A interface Streamlit depende da API FastAPI estar online para responder perguntas na Central do Agente.
+
+## Artefatos de Conformidade AV2
+
+Os artefatos abaixo foram adicionados para atender aos requisitos do Projeto Final Integrador:
+
+- Relatorio tecnico: `docs/RELATORIO_TECNICO.md`
+- Auditoria etica: `docs/AUDITORIA_ETICA.md`
+- Matriz de conformidade: `docs/MATRIZ_CONFORMIDADE_AV2.md`
+- Prompts versionados e executados em runtime: `prompts/`
+- Casos de avaliacao de qualidade: `tests/evaluation_cases.json`
+- Script de avaliacao das respostas: `tests/evaluate_response_quality.py`
+- Roteiro da defesa oral: `presentation/ROTEIRO_DEFESA.md`
+- Slides da defesa em Markdown: `presentation/SLIDES_DEFESA.md`

@@ -13,6 +13,8 @@ DATA_DIR = BASE_DIR / "data"
 CUSTOMERS_PATH = DATA_DIR / "customers.csv"
 TRANSACTIONS_PATH = DATA_DIR / "transactions.csv"
 CHROMA_DIR = BASE_DIR / "chromadb_cache"
+PROMPTS_DIR = BASE_DIR / "prompts"
+AGENT_PROMPT_PATH = PROMPTS_DIR / "agent_system_v1.md"
 COLLECTION_NAME = "guardian_compliance_policy"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 LLM_MODEL = "gemini-1.5-flash"
@@ -44,6 +46,24 @@ def criar_llm(modelo_llm: str | None = None):
         temperature=0,
         google_api_key=os.getenv("GOOGLE_API_KEY"),
     )
+
+
+def carregar_prompt_versionado(caminho: Path) -> str:
+    """Carrega o prompt versionado e extrai o bloco operacional para a LLM."""
+    if not caminho.exists():
+        raise FileNotFoundError(
+            f"Prompt versionado nao encontrado em {caminho}. "
+            "Verifique a pasta prompts/ antes de iniciar o agente."
+        )
+
+    conteudo = caminho.read_text(encoding="utf-8").strip()
+    inicio = conteudo.find("## Prompt")
+
+    if inicio == -1:
+        return conteudo
+
+    prompt_operacional = conteudo[inicio:].replace("## Prompt", "", 1).strip()
+    return prompt_operacional
 
 
 def _ler_csv_obrigatorio(caminho: Path) -> pd.DataFrame:
@@ -154,27 +174,13 @@ def criar_agent_executor(modelo_llm: str | None = None):
         consultar_politica_compliance,
     ]
 
-    # O prompt define a politica de raciocinio. A LLM decide quais ferramentas
-    # chamar e com quais argumentos; o AgentExecutor executa as funcoes Python e
-    # devolve os resultados para o modelo continuar a analise.
+    system_prompt = carregar_prompt_versionado(AGENT_PROMPT_PATH)
+
+    # O prompt versionado define a politica de raciocinio executada pela LLM.
+    # O AgentExecutor executa as ferramentas e devolve resultados ao modelo.
     prompt = ChatPromptTemplate.from_messages(
         [
-            (
-                "system",
-                (
-                    "Voce e o Guardian, o agente inteligente de compliance do "
-                    "banco. O seu objetivo e analisar se um determinado cliente "
-                    "ou transacao infringe as regras de compliance e PLD "
-                    "(Prevencao a Lavagem de Dinheiro). Siga a logica de "
-                    "raciocinio: primeiro busque os dados estruturados do "
-                    "cliente/transacao usando as ferramentas e, em seguida, "
-                    "consulte a politica de compliance para verificar se ha "
-                    "alguma infracao. Sempre justifique a sua resposta com base "
-                    "nos dados encontrados. Quando houver indicio de risco, "
-                    "cite objetivamente quais dados acionaram a regra e qual "
-                    "acao de compliance e recomendada."
-                ),
-            ),
+            ("system", system_prompt),
             ("human", "{input}"),
             MessagesPlaceholder(variable_name="agent_scratchpad"),
         ]
