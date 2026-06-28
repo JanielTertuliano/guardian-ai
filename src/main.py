@@ -33,6 +33,35 @@ _agent_model = None
 _agent_lock = Lock()
 
 
+def _extrair_texto_resposta(valor) -> str:
+    """Extrai apenas texto legivel de respostas em string, dict ou blocos Gemini."""
+    if valor is None:
+        return ""
+
+    if isinstance(valor, str):
+        return valor
+
+    if isinstance(valor, list):
+        partes = [_extrair_texto_resposta(item) for item in valor]
+        return "".join(parte for parte in partes if parte)
+
+    if isinstance(valor, dict):
+        if isinstance(valor.get("text"), str):
+            return valor["text"]
+
+        if "content" in valor:
+            return _extrair_texto_resposta(valor["content"])
+
+        partes = []
+        for chave, item in valor.items():
+            if chave in {"extras", "signature", "index", "type"}:
+                continue
+            partes.append(_extrair_texto_resposta(item))
+        return "".join(parte for parte in partes if parte)
+
+    return str(valor)
+
+
 def _carregar_modulo_agente():
     """Importa o modulo do agente sob demanda para manter o startup da API leve."""
     from src import agent
@@ -90,7 +119,7 @@ def _executar_auditoria_com_fallback(query: str) -> str:
         else:
             raise
 
-    return resultado["output"]
+    return _extrair_texto_resposta(resultado.get("output")).strip()
 
 
 @app.get("/")

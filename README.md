@@ -12,6 +12,7 @@ O projeto combina:
 - agente LangChain com Function Calling;
 - Gemini como LLM;
 - API Web com FastAPI para expor a auditoria a futuras interfaces;
+- interface web Streamlit para painel de risco e central de chat;
 - testes automatizados com `requests` e geracao de relatorio Markdown.
 
 ## Arquitetura do Projeto
@@ -53,7 +54,11 @@ Pipeline principal:
    - `GET /`: healthcheck da API;
    - `POST /api/audit`: recebe uma pergunta de auditoria e retorna a analise final do agente.
 
-5. Testes automatizados e registro de auditoria
+5. Interface Web com Streamlit
+
+   O arquivo `src/app.py` fornece uma interface visual para auditores. Ela exibe metricas dos CSVs, tabelas de clientes/transacoes e uma central de chat conectada a API FastAPI.
+
+6. Testes automatizados e registro de auditoria
 
    O script `tests/test_api.py` valida a API em execucao, mede o tempo de resposta do agente e gera `REGISTRO_DE_AUDITORIA.md` com a resposta analitica completa para o cliente `CLI-38726`.
 
@@ -68,6 +73,7 @@ Pipeline principal:
 |   `-- transactions.csv
 |-- src/
 |   |-- agent.py
+|   |-- app.py
 |   |-- baseline.py
 |   |-- generator.py
 |   |-- init.py
@@ -89,6 +95,7 @@ Pipeline principal:
 - `src/baseline.py`: monta o primeiro pipeline RAG do projeto. Ele le a politica interna, divide o texto em chunks, gera embeddings locais, cria ou carrega o indice ChromaDB e faz uma pergunta de demonstracao ao Gemini.
 - `src/agent.py`: implementa o agente inteligente de compliance. Ele usa LangChain, Function Calling e Gemini para decidir quando consultar dados cadastrais, historico de transacoes e regras da politica interna no ChromaDB.
 - `src/main.py`: expoe o agente como uma API Web FastAPI. Ele fornece o healthcheck `GET /` e a rota `POST /api/audit`, que recebe uma pergunta e retorna a analise final do agente em JSON.
+- `src/app.py`: implementa a interface Streamlit. Ela possui o Painel de Risco com metricas e dados brutos, alem da Central do Agente com chat conectado ao endpoint `POST /api/audit`.
 - `tests/test_api.py`: executa a validacao automatizada da API em funcionamento. Ele testa o healthcheck, chama a auditoria real, mede o tempo de resposta e gera `REGISTRO_DE_AUDITORIA.md`.
 - `data/politica_compliance_guardian.txt`: contem as regras internas usadas pelo RAG, incluindo limites por valor, jurisdicoes de risco e regras para clientes PEP.
 - `data/customers.csv`: contem os clientes sinteticos gerados, com perfil cadastral, faturamento, score interno e flag PEP.
@@ -236,9 +243,44 @@ O relatorio gerado contem:
 - pergunta enviada;
 - resposta analitica completa retornada pelo Gemini.
 
-### 6. Executar com Docker
+### 6. Executar a interface Streamlit localmente
 
-O projeto inclui `Dockerfile` e `docker-compose.yml` para empacotar a API FastAPI e suas dependencias.
+Com a API FastAPI rodando em outro terminal:
+
+```bash
+uvicorn src.main:app --reload
+```
+
+Suba a interface:
+
+```bash
+streamlit run src/app.py
+```
+
+A interface ficara disponivel em:
+
+```text
+http://127.0.0.1:8501
+```
+
+A aba `Painel de Risco` carrega os CSVs em `data/` e exibe:
+
+- Total de Clientes;
+- Clientes PEP Identificados;
+- Volume Total Auditado;
+- tabelas interativas de clientes e transacoes.
+
+A aba `Central do Agente` envia perguntas para:
+
+```text
+http://127.0.0.1:8000/api/audit
+```
+
+Se a API estiver offline, a interface mostra uma mensagem de erro orientando a iniciar o FastAPI.
+
+### 7. Executar com Docker
+
+O projeto inclui `Dockerfile` e `docker-compose.yml` para empacotar a API FastAPI, a interface Streamlit e suas dependencias.
 
 Antes de subir o container, confirme que o arquivo `.env` existe na raiz do projeto:
 
@@ -257,6 +299,12 @@ A API ficara disponivel em:
 
 ```text
 http://127.0.0.1:8000
+```
+
+A interface Streamlit ficara disponivel em:
+
+```text
+http://127.0.0.1:8501
 ```
 
 Valide o healthcheck:
@@ -279,6 +327,12 @@ Ver logs do servico:
 docker compose logs -f guardian-api
 ```
 
+Ver logs da interface:
+
+```bash
+docker compose logs -f guardian-ui
+```
+
 Parar a aplicacao:
 
 ```bash
@@ -294,6 +348,14 @@ O `docker-compose.yml` monta os diretorios locais abaixo dentro do container:
 
 Assim, os CSVs sinteticos e o indice ChromaDB persistem entre recriacoes do container.
 
+Dentro do Docker, a interface usa a variavel:
+
+```text
+GUARDIAN_API_URL=http://guardian-api:8000
+```
+
+Isso permite que o container `guardian-ui` chame o container `guardian-api` pela rede interna do Compose.
+
 ## Observacoes Operacionais
 
 - A primeira execucao pode demorar porque o modelo de embeddings pode ser carregado ou baixado localmente.
@@ -302,3 +364,4 @@ Assim, os CSVs sinteticos e o indice ChromaDB persistem entre recriacoes do cont
 - Se `gemini-1.5-flash` nao estiver disponivel para a chave atual, defina `GUARDIAN_AGENT_LLM_MODEL` no `.env` com um modelo suportado, como `gemini-2.5-flash`, `gemini-2.0-flash` ou outro listado para sua conta.
 - O teste `tests/test_api.py` depende da API estar ligada e de quota/modelo Gemini disponivel para concluir a auditoria real.
 - Na primeira execucao Docker, o build pode demorar porque instala dependencias pesadas como ChromaDB, sentence-transformers e bibliotecas numericas.
+- A interface Streamlit depende da API FastAPI estar online para responder perguntas na Central do Agente.

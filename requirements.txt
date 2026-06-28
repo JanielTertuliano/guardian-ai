@@ -15,3 +15,5 @@ fastapi
 uvicorn
 requests
 huggingface_hub
+streamlit
+watchdog
