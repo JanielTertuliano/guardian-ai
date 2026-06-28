@@ -13,7 +13,8 @@ O projeto combina:
 - Gemini como LLM;
 - API Web com FastAPI para expor a auditoria a futuras interfaces;
 - interface web Streamlit para painel de risco e central de chat;
-- testes automatizados com `requests` e geracao de relatorio Markdown.
+- testes automatizados com `requests` e geracao de relatorio Markdown;
+- prompts versionados, avaliacao de qualidade das respostas e auditoria etica.
 
 ## Arquitetura do Projeto
 
@@ -79,7 +80,22 @@ Pipeline principal:
 |   |-- init.py
 |   `-- main.py
 |-- tests/
-|   `-- test_api.py
+|   |-- evaluation_cases.json
+|   |-- evaluate_response_quality.py
+|   |-- test_api.py
+|   `-- test_evaluation_contract.py
+|-- docs/
+|   |-- AUDITORIA_ETICA.md
+|   |-- MATRIZ_CONFORMIDADE_AV2.md
+|   `-- RELATORIO_TECNICO.md
+|-- prompts/
+|   |-- README.md
+|   |-- agent_system_v1.md
+|   |-- rag_baseline_system_v1.md
+|   `-- tool_guidance_v1.md
+|-- presentation/
+|   |-- ROTEIRO_DEFESA.md
+|   `-- SLIDES_DEFESA.md
 |-- chromadb_cache/
 |-- .env
 |-- Dockerfile
@@ -97,6 +113,13 @@ Pipeline principal:
 - `src/main.py`: expoe o agente como uma API Web FastAPI. Ele fornece o healthcheck `GET /` e a rota `POST /api/audit`, que recebe uma pergunta e retorna a analise final do agente em JSON.
 - `src/app.py`: implementa a interface Streamlit. Ela possui o Painel de Risco com metricas e dados brutos, alem da Central do Agente com chat conectado ao endpoint `POST /api/audit`.
 - `tests/test_api.py`: executa a validacao automatizada da API em funcionamento. Ele testa o healthcheck, chama a auditoria real, mede o tempo de resposta e gera `REGISTRO_DE_AUDITORIA.md`.
+- `tests/evaluation_cases.json`: define casos de avaliacao para qualidade das respostas do agente.
+- `tests/evaluate_response_quality.py`: executa os casos de avaliacao contra a API e gera `REGISTRO_QUALIDADE_RESPOSTAS.md`.
+- `tests/test_evaluation_contract.py`: valida a existencia e consistencia dos artefatos exigidos para avaliacao.
+- `docs/RELATORIO_TECNICO.md`: relatorio tecnico do projeto com metodologia, arquitetura, resultados esperados e limitacoes.
+- `docs/AUDITORIA_ETICA.md`: analise de riscos eticos, vieses e mitigacoes.
+- `docs/MATRIZ_CONFORMIDADE_AV2.md`: matriz de rastreabilidade entre requisitos da AV2 e evidencias do projeto.
+- `prompts/`: registra prompts versionados do agente, baseline RAG e orientacao de ferramentas.
 - `data/politica_compliance_guardian.txt`: contem as regras internas usadas pelo RAG, incluindo limites por valor, jurisdicoes de risco e regras para clientes PEP.
 - `data/customers.csv`: contem os clientes sinteticos gerados, com perfil cadastral, faturamento, score interno e flag PEP.
 - `data/transactions.csv`: contem as transacoes sinteticas usadas pelo agente para identificar possiveis comportamentos suspeitos.
@@ -242,6 +265,28 @@ O relatorio gerado contem:
 - tempo total de processamento;
 - pergunta enviada;
 - resposta analitica completa retornada pelo Gemini.
+
+### 5.1. Executar avaliacao de qualidade das respostas
+
+Com a API FastAPI rodando em outro terminal:
+
+```bash
+python tests/evaluate_response_quality.py
+```
+
+Esse script le `tests/evaluation_cases.json`, envia perguntas para `POST /api/audit`
+e valida se a resposta contem evidencias obrigatorias para cada caso. Ao final,
+gera:
+
+```text
+REGISTRO_QUALIDADE_RESPOSTAS.md
+```
+
+Para validar apenas a estrutura dos artefatos obrigatorios, execute:
+
+```bash
+python -m unittest tests.test_evaluation_contract
+```
 
 ### 6. Executar a interface Streamlit localmente
 

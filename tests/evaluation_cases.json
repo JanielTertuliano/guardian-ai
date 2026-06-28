@@ -1,0 +1,26 @@
+[
+  {
+    "id": "pep_high_value",
+    "query": "Analise um cliente PEP com remessa acima de USD 100.000 e indique a regra aplicavel.",
+    "expected_risk": "PEP acima de limite",
+    "required_terms": ["PEP", "USD 100.000", "alerta", "dupla checagem"],
+    "expected_tools": ["consultar_dados_cadastrais", "consultar_historico_transacoes", "consultar_politica_compliance"],
+    "success_criteria": "A resposta deve citar status PEP, limite de USD 100.000 e necessidade de alerta com dupla checagem."
+  },
+  {
+    "id": "critical_jurisdiction_consulting",
+    "query": "Avalie uma remessa para KY ou PA com natureza Servicos de Consultoria.",
+    "expected_risk": "Jurisdicao critica",
+    "required_terms": ["KY", "PA", "jurisdicao", "Servicos de Consultoria", "analise manual"],
+    "expected_tools": ["consultar_historico_transacoes", "consultar_politica_compliance"],
+    "success_criteria": "A resposta deve relacionar KY/PA a jurisdicoes criticas e recomendar analise manual quando aplicavel."
+  },
+  {
+    "id": "high_value_transaction",
+    "query": "Qual tratamento deve ser dado a operacoes acima de USD 500.000?",
+    "expected_risk": "Valor alto",
+    "required_terms": ["USD 500.000", "risco ALTO", "auditoria documental", "aprovacao manual"],
+    "expected_tools": ["consultar_politica_compliance"],
+    "success_criteria": "A resposta deve classificar a operacao como risco alto e recomendar auditoria documental estrita."
+  }
+]
