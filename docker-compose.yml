@@ -11,6 +11,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./chromadb_cache:/app/chromadb_cache
+      - ./prompts:/app/prompts
     restart: unless-stopped
 
   guardian-ui:
@@ -28,6 +29,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./chromadb_cache:/app/chromadb_cache
+      - ./prompts:/app/prompts
     depends_on:
       - guardian-api
     restart: unless-stopped

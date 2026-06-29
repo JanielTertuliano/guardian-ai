@@ -25,6 +25,7 @@ RUN pip install --upgrade pip \
 
 COPY src/ ./src/
 COPY data/ ./data/
+COPY prompts/ ./prompts/
 COPY tests/ ./tests/
 
 EXPOSE 8000
