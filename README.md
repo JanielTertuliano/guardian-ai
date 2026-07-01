@@ -2,7 +2,7 @@
 
 ## Descricao Breve
 
-O Guardian AI automatiza a analise de Compliance e PLD/CFT em operacoes de cambio. O sistema cruza politicas internas recuperadas por RAG com dados estruturados de clientes e transacoes, permitindo que um agente de IA identifique indicios de risco, inconformidades e justificativas com base documental.
+O Guardian AI automatiza a analise de Compliance e PLD/CFT (Prevenção à lavagem de dinheiro / Combate ao FInanciamento do Terrorismo) em operacoes de cambio. O sistema cruza politicas internas recuperadas por RAG (Geração Aumentada por Recuperação) com dados estruturados de clientes e transacoes, permitindo que um agente de IA identifique indicios de risco, inconformidades e justificativas com base documental.
 
 O projeto combina:
 
